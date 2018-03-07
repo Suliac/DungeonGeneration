@@ -26,6 +26,9 @@ public class Dungeon
         DungeonInitMaxY = firstRoomMaxY;
     }
 
+    /// <summary>
+    /// Génère toutes les salles dans le donjon avec une salle de début, de fin, de boss et des salles avec des clés
+    /// </summary>
     public void Generate()
     {
         // 1 - Création de la room de départ
@@ -35,12 +38,16 @@ public class Dungeon
         PlaceAllRooms();
 
         // 3 - Placement de la fin  et du boss
+        PlaceGoalAndEndRooms();
 
         // 4 - Transforme l'arbe en graph -> ajoute d'autre liaisons entre les salles (si même niveau de clé)
 
         // 5 - Placement des clés
     }
 
+    /// <summary>
+    /// Place la première <see cref="Room"/> à une position aléatoire, et l'ajoute au <see cref="Dungeon"/> avec le <see cref="RoomType"/> START
+    /// </summary>
     private void PlaceFirstRoom()
     {
         int startX = Random.Range(0, DungeonInitMaxX);
@@ -52,6 +59,9 @@ public class Dungeon
         AddRoomToDungeonForKeyLevel(startingRoom, 0);
     }
 
+    /// <summary>
+    /// Place toutes les <see cref="Room"/> (à partir de la deuxième) dans le <see cref="Dungeon"/> en créant les <see cref="Edge"/> nécessaires
+    /// </summary>
     private void PlaceAllRooms()
     {
         currentKeyLevel = 0;
@@ -101,31 +111,105 @@ public class Dungeon
             AddRoomToDungeon(childRoom);
         }
     }
+    /// <summary>
+    /// Place la <see cref="Room"/> de fin et la <see cref="Room"/> du boss
+    /// </summary>
+    private void PlaceGoalAndEndRooms()
+    {
+        // On souhaite que notre fin de jeu se situe à un bout de la map  mais on souhaite aussi que notre salle de boss
+        // ne soit accessible que par 1 entrée et donne seulement sur la salle de fin
+        // On va donc assigner une feuille random de l'arbre à la salle de boss, puis ajouter à la suite dans une direction random la salle de fin
+
+        IncreaseKeyLevel();
+
+        // 1 - Récupération de la salle de boss
+        List<Room> leafs = allRooms.Where(r => r.GetChildrens().Count == 0).ToList();
+        if (leafs.Count == 0)
+            throw new System.Exception("Aucune feuille disponible");
+
+        leafs.Shuffle();
+        Room bossRoom = GetRandomRoomWithFreeEdges(leafs);
+        
+        if (bossRoom == null)
+            throw new System.Exception("Impossible de récupèrer une room de boss");
+
+        bossRoom.SetType(RoomType.BOSS);
+
+        // /!\ Attention pour être sur que le joueur ait récupéré toutes les clés, on met ensuite la salle de boss et de fin au plus au keylevel /!\
+        bossRoom.SetKeyLevel(currentKeyLevel);
+        Room bossParentRoom = bossRoom.GetParent();
+        // maj des edges
+        bossRoom.Link(bossParentRoom, currentKeyLevel); // il y aura forcément un blocage
+        bossParentRoom.Link(bossRoom, currentKeyLevel);
+
+        // 2 - Ajout de la salle finale à la suite de celle du boss
+        Vector2 endPos = GetRandomPosAvailableForRoom(bossRoom.getPos());
+        Room endRoom = new Room(endPos, currentKeyLevel, RoomType.END);
+
+        // On link les salles enfants et parents entre elles
+        bossRoom.Link(endRoom, -1); // Pas de blocage entre la salle de boss et de fin
+        endRoom.Link(bossRoom, -1);
+
+        endRoom.SetParent(bossRoom);
+        bossRoom.AddChild(endRoom);
+
+        // On ajoute la nouvelle salle au donjon
+        AddRoomToDungeonForKeyLevel(endRoom, currentKeyLevel);
+        AddRoomToDungeon(endRoom);
+        
+    }
 
 
     /////////////////////////////////////////////////////////////
+    /// <summary>
+    /// Récupère toutes les <see cref="Room"/> du <see cref="Dungeon"/>
+    /// </summary>
+    /// <returns>Toute les <see cref="Room"/> du <see cref="Dungeon"/></returns>
     public List<Room> GetRooms()
     {
         return allRooms;
     }
 
+    /// <summary>
+    /// Récupère une <see cref="Room"/> aléatoirement dans une <see cref="List{Room}"/> donnée, qui possède des <see cref="Edge"/> libres
+    /// </summary>
+    /// <param name="rooms">Liste de <see cref="Room"/> parmis lesquelles il faut trouver celle qui n'est pas complétement entourée</param>
+    /// <returns>Une <see cref="Room"/> aléatoire qui n'est pas complétement entourée</returns>
     private Room GetRandomRoomWithFreeEdges(List<Room> rooms)
     {
         rooms.Shuffle();
 
         foreach (var room in rooms)
         {
-            var posAvailable = GetAdjacentAvailableRoomsPos(room.getPos(), currentKeyLevel);
-            if (posAvailable.Count > 0)
+            if(IsAnyFreeEdge(room))
                 return room;
         }
 
         return null;
     }
 
+    /// <summary>
+    /// Permet de savoir si une <see cref="Room"/> possède encore des <see cref="Edge"/> libres
+    /// </summary>
+    /// <param name="room">La <see cref="Room"/> qu'on veut tester</param>
+    /// <returns><see cref="true"/> si la <see cref="Room"/> possède des <see cref="Edge"/> libres, sinon <see cref="false"/></returns>
+    private bool IsAnyFreeEdge(Room room)
+    {
+        var posAvailable = GetAdjacentAvailableRoomsPos(room.getPos());
+        if (posAvailable.Count > 0)
+            return true;
+        else
+            return false;
+    }
+
+    /// <summary>
+    /// Récupère une position aléatoire parmis les directions disponibles
+    /// </summary>
+    /// <param name="posParent">La position de la <see cref="Room"/> parent</param>
+    /// <returns>Une position aléaoire disponible autour de la position du parent</returns>
     private Vector2 GetRandomPosAvailableForRoom(Vector2 posParent)
     {
-        var posAvailable = GetAdjacentAvailableRoomsPos(posParent, currentKeyLevel);
+        var posAvailable = GetAdjacentAvailableRoomsPos(posParent);
         if (posAvailable.Count > 0)
         {
             int randomIndex = Random.Range(0, posAvailable.Count);
@@ -135,6 +219,10 @@ public class Dungeon
         throw new System.Exception("Impossible de trouver une direction disponible pour la room");
     }
 
+    /// <summary>
+    /// Permet de savoir si on doit augmenter notre Key-Level
+    /// </summary>
+    /// <returns>Retourne <see cref="true"/> si on doit augmenter sinon <see cref="false"/></returns>
     private bool ShouldIncreaseKeyLevel()
     {
         if (!roomPerKeyLevel.ContainsKey(currentKeyLevel))
@@ -143,6 +231,9 @@ public class Dungeon
         return roomPerKeyLevel[currentKeyLevel].Count > DungeonMaxRoomsPerKeyLevel;
     }
 
+    /// <summary>
+    /// Ajoute 1 au Key-Level
+    /// </summary>
     private void IncreaseKeyLevel()
     {
         currentKeyLevel++;
@@ -150,11 +241,20 @@ public class Dungeon
             roomPerKeyLevel.Add(currentKeyLevel, new List<Room>());
     }
 
+    /// <summary>
+    /// Ajoute la <see cref="Room"/> au <see cref="Dungeon"/>
+    /// </summary>
+    /// <param name="room"></param>
     private void AddRoomToDungeon(Room room)
     {
         allRooms.Add(room);
     }
 
+    /// <summary>
+    /// Ajoute la <see cref="Room"/> à la liste des <see cref="Room"/> par Key-Level
+    /// </summary>
+    /// <param name="room">la <see cref="Room"/> que l'on souhaite ajouter</param>
+    /// <param name="keyLevel">Le Key-Level auquel on souhaite ajouter notre <see cref="Room"/></param>
     private void AddRoomToDungeonForKeyLevel(Room room, int keyLevel)
     {
         if (!roomPerKeyLevel.ContainsKey(keyLevel))
@@ -166,7 +266,12 @@ public class Dungeon
             roomPerKeyLevel[keyLevel] = new List<Room> { room };
     }
 
-    private List<Vector2> GetAdjacentAvailableRoomsPos(Vector2 pos, int keyLevel)
+    /// <summary>
+    /// Récupère les positions (Attention PAS les <see cref="Room"/>) disponibles (non remplies) autours d'une position
+    /// </summary>
+    /// <param name="pos">La position initiale pour laquelle on souhaite trouver les positions libres adjacentes</param>
+    /// <returns>La liste des positions disponibles</returns>
+    private List<Vector2> GetAdjacentAvailableRoomsPos(Vector2 pos)
     {
         List<Vector2> allPosAvailable = new List<Vector2>();
 
@@ -193,6 +298,11 @@ public class Dungeon
         return allPosAvailable;
     }
 
+    /// <summary>
+    /// Fonction pour savoir si la position dans le donjon est libre
+    /// </summary>
+    /// <param name="pos">La position à laquelle on souhaite tester la présence de la <see cref="Room"/></param>
+    /// <returns>Retourne <see cref="true"/> s'il n'y a pas de <see cref="Room"/> et que la position est libre, sinon retourne <see cref="false"/></returns>
     private bool IsRoomAtPosIsAvailable(Vector2 pos)
     {
         string idWanted = Room.GetIdFromPos(pos);
@@ -201,13 +311,29 @@ public class Dungeon
         else
             return true;
     }
+    
+    /// <summary>
+    /// Vérifie s'il y a un lien (<see cref="Edge"/>) avec une <see cref="Room"/> dans la <see cref="Direction"/> donnée depuis la <see cref="Room"/> parent
+    /// </summary>
+    /// <param name="parentRoom">La <see cref="Room"/> depuis laquelle on cherche</param>
+    /// <param name="direction">La direction dans laquelle on veut tester le lien</param>
+    /// <returns>Retourne le lien (<see cref="Edge"/>) si existant, sinon <see cref="null"/></returns>
+    public Edge IsLinkedToDirection(Room parentRoom, Direction direction)
+    {
+        Room roomToDir = GetRoom(parentRoom.getPos(), direction);
+
+        if (roomToDir == null)
+            return null;
+
+        return parentRoom.IsLinkedTo(roomToDir);
+    }
 
     /// <summary>
-    /// Récupère la <see cref="Room"/> dans le donjon depuis la position d'une de départ avec une <see cref="Direction"/> donnée
+    /// Récupère la <see cref="Room"/> dans le <see cref="Dungeon"/> depuis la position d'une de départ avec une <see cref="Direction"/> donnée
     /// </summary>
     /// <param name="parentPos">Position de départ</param>
     /// <param name="direction">La direction dans laquelle on veut la prochaine room</param>
-    /// <returns>Retourne une <see cref="Room"/> si existante dans le <see cref="Dungeon"/>, sinon <see cref="null"/></returns>
+    /// <returns>Retourne une <see cref="Room"/> si existante dans le donjon, sinon <see cref="null"/></returns>
     public Room GetRoom(Vector2 parentPos, Direction direction)
     {
         Vector2 newPos = Vector2.zero;
@@ -221,7 +347,7 @@ public class Dungeon
                 newPos = new Vector2(parentPos.x + 1, parentPos.y);
                 break;
             case Direction.South:
-                newPos = new Vector2(parentPos.x, parentPos.y + 1);
+                newPos = new Vector2(parentPos.x, parentPos.y - 1);
                 break;
             case Direction.West:
                 newPos = new Vector2(parentPos.x - 1, parentPos.y);
@@ -233,15 +359,6 @@ public class Dungeon
         return GetRoom(Room.GetIdFromPos(newPos));
     }
 
-    public bool IsLinkedToDirection(Room parentRoom, Direction direction)
-    {
-        Room roomToDir = roomToDir = GetRoom(parentRoom.getPos(), direction);
-
-        if (roomToDir == null)
-            return false;
-
-        return parentRoom.IsLinkedTo(roomToDir);
-    }
 
     /// <summary>
     /// Récupère une <see cref="Room"/> par son id (concaténation de ses coordonnées en <see cref="string"/>

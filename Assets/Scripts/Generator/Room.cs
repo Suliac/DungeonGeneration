@@ -81,24 +81,44 @@ public class Room
         childrens.Add(child);
     }
 
+    public List<Room> GetChildrens()
+    {
+        return childrens;
+    }
+
     public void SetParent(Room room)
     {
         parent = room;
     } 
+
+    public Room GetParent()
+    {
+        return parent;
+    }
 
     public RoomType GetType()
     {
         return type;
     }
 
+    public void SetType(RoomType value)
+    {
+        type = value;
+    }
+
     public int GetKeyLevel()
     {
         return keyLevel;
     }
+
+    public void SetKeyLevel(int value)
+    {
+        keyLevel = value;
+    }
     #endregion
 
-    public bool IsLinkedTo(Room other)
+    public Edge IsLinkedTo(Room other)
     {
-        return edges.Any(e => e.GetRoomId() == other.GetId());
+        return edges.FirstOrDefault(e => e.GetRoomId() == other.GetId());
     }
 }

@@ -36,6 +36,11 @@ public class Edge
     {
         keyLevelNeeded = keyLevel;
     }
+
+    public int GetKeyLevel()
+    {
+        return keyLevelNeeded;
+    }
     
 
 }

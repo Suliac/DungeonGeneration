@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.44657844, g: 0.49641222, b: 0.57481694, a: 1}
+  m_IndirectSpecularColor: {r: 0.44657898, g: 0.4964133, b: 0.5748178, a: 1}
 --- !u!157 &3
 LightmapSettings:
   m_ObjectHideFlags: 0
@@ -220,8 +220,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   roomPrefab: {fileID: 1838407989707346, guid: 6912ebf7485b56d4d82e205ae4abc051, type: 2}
-  MaxRooms: 32
-  MaxRoomPerLevel: 4
+  MaxRooms: 16
+  MaxRoomPerLevel: 8
   InitMaxX: 1
   InitMaxY: 1
 --- !u!4 &1112570106

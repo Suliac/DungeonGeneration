@@ -26,104 +26,94 @@ public class DungeonGenerator : MonoBehaviour {
 
     void RenderDungeon()
     {
-        if(dungeonGameObject)
+        ResetRender();
+
+        var rooms = dungeon.GetRooms();
+        foreach (var room in rooms)
+        {
+            Vector2 pos = room.getPos();
+            GameObject currentRoom = Instantiate(roomPrefab, new Vector3(pos.x, 0, pos.y), Quaternion.identity, dungeonGameObject.transform);
+
+            RenderGround(room, currentRoom);
+
+            RenderKeyLevel(room, currentRoom);            
+
+            RenderDoor(room, currentRoom, Direction.North);
+            RenderDoor(room, currentRoom, Direction.East);
+            RenderDoor(room, currentRoom, Direction.South);
+            RenderDoor(room, currentRoom, Direction.West);
+        }
+
+    }
+
+    #region Debug Render Func
+    private void ResetRender()
+    {
+        if (dungeonGameObject)
         {
             GameObject.DestroyImmediate(dungeonGameObject.gameObject);
             dungeonGameObject = null;
         }
 
         dungeonGameObject = new GameObject("Dungeon");
+    }
 
-        var rooms = dungeon.GetRooms();
-        foreach (var room in rooms)
+    private void RenderDoor(Room room, GameObject unityRoom, Direction direction)
+    {
+        Transform door = null;
+        Edge edge = dungeon.IsLinkedToDirection(room, direction);
+        if (edge != null)
         {
-            Vector2 pos = room.getPos();
-
-            GameObject currentRoom = Instantiate(roomPrefab, new Vector3(pos.x, 0, pos.y), Quaternion.identity, dungeonGameObject.transform);
-            Transform ground = currentRoom.transform.Find("Ground");
-            if (!ground)
-                continue;
-
-            Renderer rend = ground.GetComponent<Renderer>();
-            if (!rend)
-                continue;
-
-            switch (room.GetType())
+            door = unityRoom.transform.Find(direction.ToString() + "Door");
+            if (door != null)
             {
-                case RoomType.START:
-                    rend.material.color = Color.green;
-                    break;
-                case RoomType.END:
-                    rend.material.color = Color.red;
-                    break;
-                case RoomType.BOSS:
-                    rend.material.color = Color.blue;
-                    break;
-                case RoomType.NORMAL:
-                    break;
-                default:
-                    break;
-            }
-
-            TextMesh keyLevel = currentRoom.GetComponentInChildren<TextMesh>();
-            if (!keyLevel)
-                continue;
-
-            keyLevel.text = room.GetKeyLevel().ToString();
-
-            Transform door = null;
-            if(dungeon.IsLinkedToDirection(room, Direction.North))
-            {
-                door = currentRoom.transform.Find("NorthDoor");
-                if(door != null)
-                {
-                    Renderer doorRend = door.GetComponent<Renderer>();
-                    if(doorRend != null)
-                        doorRend.material.color = Color.black;
-                }
-            }
-
-            door = null;
-            if (dungeon.IsLinkedToDirection(room, Direction.East))
-            {
-                door = currentRoom.transform.Find("EastDoor");
-                if (door != null)
-                {
-                    Renderer doorRend = door.GetComponent<Renderer>();
-                    if (doorRend != null)
-                        doorRend.material.color = Color.black;
-                }
-            }
-
-            door = null;
-            if (dungeon.IsLinkedToDirection(room, Direction.South))
-            {
-                door = currentRoom.transform.Find("SouthDoor");
-                if (door != null)
-                {
-                    Renderer doorRend = door.GetComponent<Renderer>();
-                    if (doorRend != null)
-                        doorRend.material.color = Color.black;
-                }
-            }
-
-            door = null;
-            if (dungeon.IsLinkedToDirection(room, Direction.West))
-            {
-                door = currentRoom.transform.Find("WestDoor");
-                if (door != null)
-                {
-                    Renderer doorRend = door.GetComponent<Renderer>();
-                    if (doorRend != null)
-                        doorRend.material.color = Color.black;
-                }
+                Renderer doorRend = door.GetComponent<Renderer>();
+                if (doorRend != null)
+                    doorRend.material.color = edge.GetKeyLevel() > -1 ? Color.black : Color.grey;
             }
         }
-
     }
-	
-	// Update is called once per frame
-	void Update () {
+
+    private void RenderGround(Room room, GameObject unityRoom)
+    {
+        Transform ground = unityRoom.transform.Find("Ground");
+        if (!ground)
+            return;
+
+        Renderer rend = ground.GetComponent<Renderer>();
+        if (!rend)
+            return;
+
+        switch (room.GetType())
+        {
+            case RoomType.START:
+                rend.material.color = Color.green;
+                break;
+            case RoomType.END:
+                rend.material.color = Color.red;
+                break;
+            case RoomType.BOSS:
+                rend.material.color = Color.blue;
+                break;
+            case RoomType.NORMAL:
+                break;
+            default:
+                break;
+        }
+    }
+
+    private void RenderKeyLevel(Room room, GameObject unityRoom)
+    {
+        TextMesh keyLevel = unityRoom.GetComponentInChildren<TextMesh>();
+        if (!keyLevel)
+            return;
+
+        keyLevel.text = room.GetKeyLevel().ToString();
+    } 
+    #endregion
+
+    // Update is called once per frame
+    void Update () {
         if (Input.GetButtonDown("Jump"))
             GenerateDungeon();
 
