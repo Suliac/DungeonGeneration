@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 public abstract class IRenderer : ScriptableObject
 {
@@ -40,7 +41,7 @@ public abstract class IRenderer : ScriptableObject
             RenderDoor(room, Direction.West);
         }
     }
-
+    
     abstract protected void ResetRender();
 
     abstract protected void RenderRoom(Room dungeonRoom);
@@ -52,7 +53,7 @@ public abstract class IRenderer : ScriptableObject
     abstract protected void RenderKeyLevel(Room dungeonRoom);
 
     abstract protected void RenderIntensity(Room dungeonRoom);
-
+    
     virtual protected void SpecificInit()
     {
         return;

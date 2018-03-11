@@ -133,5 +133,15 @@ public class Room
     {
         return intensity;
     }
+
+    public bool GetHasKey()
+    {
+        return hasKey;
+    }
+
+    public void SetHasKey(bool value)
+    {
+        hasKey = value;
+    }
     
 }

@@ -48,8 +48,6 @@ public class DebugRenderer : IRenderer
         if (!rend)
             return;
 
-
-
         switch (dungeonRoom.GetRoomType())
         {
             case RoomType.START:
@@ -66,6 +64,11 @@ public class DebugRenderer : IRenderer
                 break;
             default:
                 break;
+        }
+
+        if(dungeonRoom.GetHasKey())
+        {
+            rend.material.color = Color.yellow;
         }
     }
 
@@ -98,5 +101,5 @@ public class DebugRenderer : IRenderer
 
         intensity.text = dungeonRoom.GetIntensity().ToString("n2");
     }
-
+    
 }

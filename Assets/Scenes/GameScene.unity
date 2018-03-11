@@ -219,7 +219,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a9e2435dfb61a8e438bb49bb92630ec0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  MaxRooms: 16
+  MaxRooms: 32
   MaxRoomPerLevel: 8
   InitMaxX: 1
   InitMaxY: 1

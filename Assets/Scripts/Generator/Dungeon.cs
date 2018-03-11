@@ -51,6 +51,7 @@ public class Dungeon
         // 5 - Transforme l'arbe en graph -> ajoute d'autre liaisons entre les salles (si même niveau de clé)
     }
 
+    #region Core Func
     /// <summary>
     /// Place la première <see cref="Room"/> à une position aléatoire, et l'ajoute au <see cref="Dungeon"/> avec le <see cref="RoomType"/> START
     /// </summary>
@@ -143,7 +144,7 @@ public class Dungeon
         bossRoom.SetType(RoomType.BOSS);
 
         // /!\ Attention pour être sur que le joueur ait récupéré toutes les clés, on met ensuite la salle de boss et de fin au plus haut keylevel /!\
-        ChangeKeyLevel(bossRoom, currentKeyLevel);       
+        ChangeKeyLevel(bossRoom, currentKeyLevel);
         Room bossParentRoom = bossRoom.GetParent();
 
         // maj des edges
@@ -181,11 +182,41 @@ public class Dungeon
         // On passe nos intensités entre 0.0f et 1.0f
         NormalizeRoomsIntensity(maxDungeonIntensity);
     }
-    
 
-    /////////////////////////////////////////////////////////////
+    /// <summary>
+    /// Récupère une <see cref="Room"/> par niveau pour lui mettre une clé, en évitant de mettre la clé devant la porte si possible
+    /// </summary>
+    private void SetAllKeys()
+    {
+        for (int i = 0; i < currentKeyLevel; i++) // Pas touche aux boss/fin
+        {
+            var rooms = GetRoomsWithTheMostIntensityForLevel(i).ToArray();
+            if (rooms.Count() <= 0)
+                throw new System.Exception("Impossible de récupérer une place pour la clé pour un niveau");
 
 
+            if (rooms.Count() > 1)
+            {
+                bool keyPlaceFound = false;
+                foreach (var room in rooms)
+                {
+                    // si la piece n'est pas collé à une porte vérouillée, on y met une clé
+                    if (!room.GetChildrens().Any(child => child.GetKeyLevel() != room.GetKeyLevel()) && !keyPlaceFound)
+                    {
+                        room.SetHasKey(true);
+                        keyPlaceFound = true;
+                    }
+                }
+            }
+            else // si == 1
+                rooms[0].SetHasKey(true);
+        }
+    }
+    #endregion
+
+    #region Utility Func
+
+    #region Room getters
     /// <summary>
     /// Récupère toutes les <see cref="Room"/> du <see cref="Dungeon"/>
     /// </summary>
@@ -193,6 +224,60 @@ public class Dungeon
     public List<Room> GetRooms()
     {
         return allRooms;
+    }
+
+    /// <summary>
+    /// Récupère la <see cref="Room"/> dans le <see cref="Dungeon"/> depuis la position d'une de départ avec une <see cref="Direction"/> donnée
+    /// </summary>
+    /// <param name="parentPos">Position de départ</param>
+    /// <param name="direction">La direction dans laquelle on veut la prochaine room</param>
+    /// <returns>Retourne une <see cref="Room"/> si existante dans le donjon, sinon <see cref="null"/></returns>
+    public Room GetRoom(Vector2 parentPos, Direction direction)
+    {
+        Vector2 newPos = Vector2.zero;
+
+        switch (direction)
+        {
+            case Direction.North:
+                newPos = new Vector2(parentPos.x, parentPos.y + 1);
+                break;
+            case Direction.East:
+                newPos = new Vector2(parentPos.x + 1, parentPos.y);
+                break;
+            case Direction.South:
+                newPos = new Vector2(parentPos.x, parentPos.y - 1);
+                break;
+            case Direction.West:
+                newPos = new Vector2(parentPos.x - 1, parentPos.y);
+                break;
+            default:
+                break;
+        }
+
+        return GetRoom(Room.GetIdFromPos(newPos));
+    }
+
+    /// <summary>
+    /// Récupère une <see cref="Room"/> par son id (concaténation de ses coordonnées en <see cref="string"/>
+    /// </summary>
+    /// <param name="id">Identifiant de la <see cref="Room"/> recherchée</param>
+    /// <returns>Retourne une <see cref="Room"/> si existante dans le <see cref="Dungeon"/>, sinon <see cref="null"/></returns>
+    public Room GetRoom(string id)
+    {
+        return allRooms.FirstOrDefault(r => r.GetId() == id);
+    }
+
+    /// <summary>
+    /// Récupère la première <see cref="Room"/> d'un niveau : celle qui a un parent dont le niveau de clé est différent (ou qui n'a pas de parent)
+    /// </summary>
+    /// <param name="keyLevel">Niveau de clé pour lequel on souhaite récupérer la premiere <see cref="Room"/></param>
+    /// <returns>la première <see cref="Room"/> d'un niveau ou <see cref="null"/> si niveau inexistant</returns>
+    private Room GetRoom(int keyLevel)
+    {
+        if (!roomPerKeyLevel.ContainsKey(keyLevel))
+            return null;
+
+        return roomPerKeyLevel[keyLevel].FirstOrDefault(room => room.GetParent() == null || room.GetParent().GetKeyLevel() != room.GetKeyLevel());
     }
 
     /// <summary>
@@ -211,7 +296,14 @@ public class Dungeon
         }
 
         return null;
+    } 
+
+    private IEnumerable<Room> GetRoomsWithTheMostIntensityForLevel(int keyLevel)
+    {
+        float maxIntensityLevel = roomPerKeyLevel[keyLevel].Max(r => r.GetIntensity());
+        return roomPerKeyLevel[keyLevel].Where(r => r.GetIntensity() == maxIntensityLevel);
     }
+    #endregion
 
     /// <summary>
     /// Permet de savoir si une <see cref="Room"/> possède encore des <see cref="Edge"/> libres
@@ -266,6 +358,11 @@ public class Dungeon
             roomPerKeyLevel.Add(currentKeyLevel, new List<Room>());
     }
 
+    /// <summary>
+    /// Change une <see cref="Room"/> d'un KeyLevel à un autre
+    /// </summary>
+    /// <param name="roomToUpdate">La pièce à update</param>
+    /// <param name="newKeyLevel">Le nouveau niveau de la pièece</param>
     private void ChangeKeyLevel(Room roomToUpdate, int newKeyLevel)
     {
         int oldKeyLevel = roomToUpdate.GetKeyLevel();
@@ -274,13 +371,14 @@ public class Dungeon
             if (!roomPerKeyLevel.ContainsKey(oldKeyLevel))
                 throw new System.Exception("Erreur avec le vieux niveau de clé");
 
-            roomPerKeyLevel[oldKeyLevel].Remove(roomToUpdate);
+            Room roomToDelete = roomPerKeyLevel[oldKeyLevel].FirstOrDefault(r => r.GetRoomType() == RoomType.BOSS);
+            roomPerKeyLevel[oldKeyLevel].Remove(roomToDelete);
 
             roomToUpdate.SetKeyLevel(currentKeyLevel);
             if (!roomPerKeyLevel.ContainsKey(currentKeyLevel))
                 throw new System.Exception("Erreur avec le nouveau niveau de clé");
 
-            roomPerKeyLevel[oldKeyLevel].Add(roomToUpdate); 
+            roomPerKeyLevel[newKeyLevel].Add(roomToUpdate);
         }
     }
 
@@ -370,62 +468,7 @@ public class Dungeon
 
         return parentRoom.IsLinkedTo(roomToDir);
     }
-
-    /// <summary>
-    /// Récupère la <see cref="Room"/> dans le <see cref="Dungeon"/> depuis la position d'une de départ avec une <see cref="Direction"/> donnée
-    /// </summary>
-    /// <param name="parentPos">Position de départ</param>
-    /// <param name="direction">La direction dans laquelle on veut la prochaine room</param>
-    /// <returns>Retourne une <see cref="Room"/> si existante dans le donjon, sinon <see cref="null"/></returns>
-    public Room GetRoom(Vector2 parentPos, Direction direction)
-    {
-        Vector2 newPos = Vector2.zero;
-
-        switch (direction)
-        {
-            case Direction.North:
-                newPos = new Vector2(parentPos.x, parentPos.y + 1);
-                break;
-            case Direction.East:
-                newPos = new Vector2(parentPos.x + 1, parentPos.y);
-                break;
-            case Direction.South:
-                newPos = new Vector2(parentPos.x, parentPos.y - 1);
-                break;
-            case Direction.West:
-                newPos = new Vector2(parentPos.x - 1, parentPos.y);
-                break;
-            default:
-                break;
-        }
-
-        return GetRoom(Room.GetIdFromPos(newPos));
-    }
-
-
-    /// <summary>
-    /// Récupère une <see cref="Room"/> par son id (concaténation de ses coordonnées en <see cref="string"/>
-    /// </summary>
-    /// <param name="id">Identifiant de la <see cref="Room"/> recherchée</param>
-    /// <returns>Retourne une <see cref="Room"/> si existante dans le <see cref="Dungeon"/>, sinon <see cref="null"/></returns>
-    public Room GetRoom(string id)
-    {
-        return allRooms.FirstOrDefault(r => r.GetId() == id);
-    }
-
-    /// <summary>
-    /// Récupère la première <see cref="Room"/> d'un niveau : celle qui a un parent dont le niveau de clé est différent (ou qui n'a pas de parent)
-    /// </summary>
-    /// <param name="keyLevel">Niveau de clé pour lequel on souhaite récupérer la premiere <see cref="Room"/></param>
-    /// <returns>la première <see cref="Room"/> d'un niveau ou <see cref="null"/> si niveau inexistant</returns>
-    private Room GetRoom(int keyLevel)
-    {
-        if (!roomPerKeyLevel.ContainsKey(keyLevel))
-            return null;
-
-        return roomPerKeyLevel[keyLevel].FirstOrDefault(room => room.GetParent() == null || room.GetParent().GetKeyLevel() != room.GetKeyLevel());
-    }
-
+    
     /// <summary>
     /// On précise l'intensité de la salle à partir de la dernière intensité (où de l'intensité max du dernier niveau si nouveau level) et on fait la même chose pour ses enfants
     /// Attention, seules les <see cref="Room"/> d'un même niveau de clés sont ajoutés
@@ -438,7 +481,7 @@ public class Dungeon
         // Si on ne fait pas attention, nous pourrions passer à l'étage suivant avec comme base d'intensité un valeur
         // qui n'est pas liée à toute les pièces de l'étage, il faut donc r'envoyer une valeur si on arrive au bout 
         // d'une branche mais que toutes les pièces de l'étages n'ont pas été parcourues
-        
+
         Room currentRoom = GetRoom(currentRoomId);
         if (currentRoom == null)
             throw new System.Exception("Impossible de trouver la room à partir de son ID");
@@ -446,7 +489,7 @@ public class Dungeon
         int currentKeyLevel = currentRoom.GetKeyLevel();
         float intensity = lastIntensity + 1;
         float maxIntensity = intensity;
-        
+
         // On met à jour l'intensité
         currentRoom.SetIntensity(intensity);
 
@@ -477,7 +520,7 @@ public class Dungeon
             float currentIntensity = i > 0 ? nextLevelIntensity * 0.75f : 0.0f;
             currentIntensity--; // On prévoit le intensity+1 du SetRoomIntensity
 
-            Room firstRoomOfKeyLevel =  GetRoom(i); // On récupère la premère room du niveau
+            Room firstRoomOfKeyLevel = GetRoom(i); // On récupère la premère room du niveau
             if (firstRoomOfKeyLevel == null)
                 throw new System.Exception("Impossible de récupérer la première pièce d'un niveau");
 
@@ -523,5 +566,6 @@ public class Dungeon
         foreach (var room in allRooms) // On s'en fiche de l'ordre ici puisqu'on compare l'intensité de la pièece par rapport à l'intensité max
             room.SetIntensity(room.GetIntensity() / maxIntensity);
 
-    }
+    } 
+    #endregion
 }
