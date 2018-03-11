@@ -219,11 +219,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a9e2435dfb61a8e438bb49bb92630ec0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  roomPrefab: {fileID: 1838407989707346, guid: 6912ebf7485b56d4d82e205ae4abc051, type: 2}
   MaxRooms: 16
   MaxRoomPerLevel: 8
   InitMaxX: 1
   InitMaxY: 1
+  dungeonRenderer: {fileID: 11400000, guid: 16c6f3ba3d0d499459ae93784f16b425, type: 2}
 --- !u!4 &1112570106
 Transform:
   m_ObjectHideFlags: 0
@@ -296,7 +296,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1854808120}
   m_LocalRotation: {x: 0.40821788, y: -0.23456968, z: 0.10938163, w: 0.8754261}
-  m_LocalPosition: {x: 0, y: 3, z: 0}
+  m_LocalPosition: {x: 0, y: 100, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}

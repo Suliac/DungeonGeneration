@@ -20,6 +20,8 @@ public class Room
     private List<Room> childrens;
     private Room parent;
 
+    private float intensity;
+
     private int keyLevel;
     private bool hasKey;
     private RoomType type;
@@ -51,7 +53,7 @@ public class Room
     #region Accessors
     public static string GetIdFromPos(Vector2 pos)
     {
-        return pos.x+","+pos.y; // L'idée c'est d'avoir un string qui est en lien avec les coordonnées pour pouvoir tester un id non présent actuellemnt dans le dj
+        return pos.x + "," + pos.y; // L'idée c'est d'avoir un string qui est en lien avec les coordonnées pour pouvoir tester un id non présent actuellemnt dans le dj
     }
 
     public void Link(Room other, int keyLevel)
@@ -89,14 +91,14 @@ public class Room
     public void SetParent(Room room)
     {
         parent = room;
-    } 
+    }
 
     public Room GetParent()
     {
         return parent;
     }
 
-    public RoomType GetType()
+    public RoomType GetRoomType()
     {
         return type;
     }
@@ -121,4 +123,15 @@ public class Room
     {
         return edges.FirstOrDefault(e => e.GetRoomId() == other.GetId());
     }
+
+    public void SetIntensity(float value)
+    {
+        intensity = value;
+    }
+
+    public float GetIntensity()
+    {
+        return intensity;
+    }
+    
 }

@@ -8,6 +8,7 @@ public class Dungeon
     private List<Room> allRooms;
     private Dictionary<int, List<Room>> roomPerKeyLevel;
     private int currentKeyLevel;
+    private Room startingRoom;
 
     private int DungeonMaxRoomsPerKeyLevel = 4;
     private int DungeonMaxRooms = 16; // NB MAX_ROOM < MAX_X*MAX_Y pour ne pas avoir que des donjons finaux carrés (qui remplisse tout l'espace dispo)
@@ -19,6 +20,7 @@ public class Dungeon
         allRooms = new List<Room>();
         roomPerKeyLevel = new Dictionary<int, List<Room>>();
         currentKeyLevel = 0;
+        startingRoom = null;
 
         DungeonMaxRoomsPerKeyLevel = maxRoomsPerLevel;
         DungeonMaxRooms = maxRooms;
@@ -40,9 +42,13 @@ public class Dungeon
         // 3 - Placement de la fin  et du boss
         PlaceGoalAndEndRooms();
 
-        // 4 - Transforme l'arbe en graph -> ajoute d'autre liaisons entre les salles (si même niveau de clé)
+        // 4 - Gestion de l'intensité d'une room inspiré de la thèse : https://smartech.gatech.edu/bitstream/handle/1853/16823/ashmore-thesis.pdf (en simplifiant)
+        SetAllRoomsIntensity();
 
-        // 5 - Placement des clés
+        // 4 - Placement des clés -> on met les clés là où l'intensité est la plus forte à une niveau
+        SetAllKeys();
+
+        // 5 - Transforme l'arbe en graph -> ajoute d'autre liaisons entre les salles (si même niveau de clé)
     }
 
     /// <summary>
@@ -53,7 +59,7 @@ public class Dungeon
         int startX = Random.Range(0, DungeonInitMaxX);
         int startY = Random.Range(0, DungeonInitMaxY);
 
-        Room startingRoom = new Room(new Vector2(startX, startY), 0, RoomType.START);
+        startingRoom = new Room(new Vector2(startX, startY), 0, RoomType.START);
 
         AddRoomToDungeon(startingRoom);
         AddRoomToDungeonForKeyLevel(startingRoom, 0);
@@ -111,6 +117,7 @@ public class Dungeon
             AddRoomToDungeon(childRoom);
         }
     }
+
     /// <summary>
     /// Place la <see cref="Room"/> de fin et la <see cref="Room"/> du boss
     /// </summary>
@@ -129,15 +136,16 @@ public class Dungeon
 
         leafs.Shuffle();
         Room bossRoom = GetRandomRoomWithFreeEdges(leafs);
-        
+
         if (bossRoom == null)
             throw new System.Exception("Impossible de récupèrer une room de boss");
 
         bossRoom.SetType(RoomType.BOSS);
 
-        // /!\ Attention pour être sur que le joueur ait récupéré toutes les clés, on met ensuite la salle de boss et de fin au plus au keylevel /!\
-        bossRoom.SetKeyLevel(currentKeyLevel);
+        // /!\ Attention pour être sur que le joueur ait récupéré toutes les clés, on met ensuite la salle de boss et de fin au plus haut keylevel /!\
+        ChangeKeyLevel(bossRoom, currentKeyLevel);       
         Room bossParentRoom = bossRoom.GetParent();
+
         // maj des edges
         bossRoom.Link(bossParentRoom, currentKeyLevel); // il y aura forcément un blocage
         bossParentRoom.Link(bossRoom, currentKeyLevel);
@@ -156,11 +164,28 @@ public class Dungeon
         // On ajoute la nouvelle salle au donjon
         AddRoomToDungeonForKeyLevel(endRoom, currentKeyLevel);
         AddRoomToDungeon(endRoom);
-        
+
     }
 
+    /// <summary>
+    /// Parcours l'arbre des <see cref="Room"/> récusrivement pour évaluer le niveau d'intensité des pièces
+    /// </summary>
+    private void SetAllRoomsIntensity()
+    {
+        // parcours récursif de l'arbre pour mettre une première version de l'intensité
+        float maxDungeonIntensity = SetRoomIntensityByKeyLevel();
+
+        // Gestion de l'intensité de la salle de boss et de fin
+        maxDungeonIntensity = SetBossAndEndRoomIntensity(maxDungeonIntensity);
+
+        // On passe nos intensités entre 0.0f et 1.0f
+        NormalizeRoomsIntensity(maxDungeonIntensity);
+    }
+    
 
     /////////////////////////////////////////////////////////////
+
+
     /// <summary>
     /// Récupère toutes les <see cref="Room"/> du <see cref="Dungeon"/>
     /// </summary>
@@ -181,7 +206,7 @@ public class Dungeon
 
         foreach (var room in rooms)
         {
-            if(IsAnyFreeEdge(room))
+            if (IsAnyFreeEdge(room))
                 return room;
         }
 
@@ -239,6 +264,24 @@ public class Dungeon
         currentKeyLevel++;
         if (!roomPerKeyLevel.ContainsKey(currentKeyLevel))
             roomPerKeyLevel.Add(currentKeyLevel, new List<Room>());
+    }
+
+    private void ChangeKeyLevel(Room roomToUpdate, int newKeyLevel)
+    {
+        int oldKeyLevel = roomToUpdate.GetKeyLevel();
+        if (oldKeyLevel != newKeyLevel)
+        {
+            if (!roomPerKeyLevel.ContainsKey(oldKeyLevel))
+                throw new System.Exception("Erreur avec le vieux niveau de clé");
+
+            roomPerKeyLevel[oldKeyLevel].Remove(roomToUpdate);
+
+            roomToUpdate.SetKeyLevel(currentKeyLevel);
+            if (!roomPerKeyLevel.ContainsKey(currentKeyLevel))
+                throw new System.Exception("Erreur avec le nouveau niveau de clé");
+
+            roomPerKeyLevel[oldKeyLevel].Add(roomToUpdate); 
+        }
     }
 
     /// <summary>
@@ -311,7 +354,7 @@ public class Dungeon
         else
             return true;
     }
-    
+
     /// <summary>
     /// Vérifie s'il y a un lien (<see cref="Edge"/>) avec une <see cref="Room"/> dans la <see cref="Direction"/> donnée depuis la <see cref="Room"/> parent
     /// </summary>
@@ -368,5 +411,117 @@ public class Dungeon
     public Room GetRoom(string id)
     {
         return allRooms.FirstOrDefault(r => r.GetId() == id);
+    }
+
+    /// <summary>
+    /// Récupère la première <see cref="Room"/> d'un niveau : celle qui a un parent dont le niveau de clé est différent (ou qui n'a pas de parent)
+    /// </summary>
+    /// <param name="keyLevel">Niveau de clé pour lequel on souhaite récupérer la premiere <see cref="Room"/></param>
+    /// <returns>la première <see cref="Room"/> d'un niveau ou <see cref="null"/> si niveau inexistant</returns>
+    private Room GetRoom(int keyLevel)
+    {
+        if (!roomPerKeyLevel.ContainsKey(keyLevel))
+            return null;
+
+        return roomPerKeyLevel[keyLevel].FirstOrDefault(room => room.GetParent() == null || room.GetParent().GetKeyLevel() != room.GetKeyLevel());
+    }
+
+    /// <summary>
+    /// On précise l'intensité de la salle à partir de la dernière intensité (où de l'intensité max du dernier niveau si nouveau level) et on fait la même chose pour ses enfants
+    /// Attention, seules les <see cref="Room"/> d'un même niveau de clés sont ajoutés
+    /// </summary>
+    /// <param name="currentRoom">La pièce que l'on est ent rain de modifier</param>
+    /// <param name="lastIntensity">L'intensité de la pièce parente</param>
+    private float SetRoomIntensity(string currentRoomId, float lastIntensity)
+    {
+        // NB : On a un probleme quand la feuille d'un niveau n'est pas la dernière pièce d'un étage
+        // Si on ne fait pas attention, nous pourrions passer à l'étage suivant avec comme base d'intensité un valeur
+        // qui n'est pas liée à toute les pièces de l'étage, il faut donc r'envoyer une valeur si on arrive au bout 
+        // d'une branche mais que toutes les pièces de l'étages n'ont pas été parcourues
+        
+        Room currentRoom = GetRoom(currentRoomId);
+        if (currentRoom == null)
+            throw new System.Exception("Impossible de trouver la room à partir de son ID");
+
+        int currentKeyLevel = currentRoom.GetKeyLevel();
+        float intensity = lastIntensity + 1;
+        float maxIntensity = intensity;
+        
+        // On met à jour l'intensité
+        currentRoom.SetIntensity(intensity);
+
+        // On parcourt les enfant de même KeyLevel pour update leur intensité
+        List<Room> childrens = currentRoom.GetChildrens();
+        if (childrens != null)
+        {
+            foreach (var roomChild in childrens.Where(c => c.GetKeyLevel() == currentKeyLevel)) // On ne gère que l'intensité du même étage pour être sûr que toutes les pièces ont été gérées avant de passer à l'étage suivant
+            {
+                float childMaxIntensity = SetRoomIntensity(roomChild.GetId(), intensity);
+                maxIntensity = Mathf.Max(maxIntensity, childMaxIntensity); // Si plusieurs enfants, l'intensité max est la plus grande des enfants
+            }
+        }
+
+        return maxIntensity;
+    }
+
+    /// <summary>
+    /// Précise l'intensité des <see cref="Room"/> par niveau de clé
+    /// </summary>
+    /// <returns>L'intensité max du donjon</returns>
+    private float SetRoomIntensityByKeyLevel()
+    {
+        float nextLevelIntensity = 0.0f;
+
+        for (int i = 0; i < currentKeyLevel; i++)
+        {
+            float currentIntensity = i > 0 ? nextLevelIntensity * 0.75f : 0.0f;
+            currentIntensity--; // On prévoit le intensity+1 du SetRoomIntensity
+
+            Room firstRoomOfKeyLevel =  GetRoom(i); // On récupère la premère room du niveau
+            if (firstRoomOfKeyLevel == null)
+                throw new System.Exception("Impossible de récupérer la première pièce d'un niveau");
+
+            float maxLevelIntensity = SetRoomIntensity(firstRoomOfKeyLevel.GetId(), currentIntensity);
+            nextLevelIntensity = Mathf.Max(nextLevelIntensity, maxLevelIntensity);
+        }
+
+        return nextLevelIntensity; // a la fin nextLevelIntensity = l'intensité max
+    }
+
+    /// <summary>
+    /// On veut que l'intensité de la salle de boss soit le plus forte possible et que celle de fin soit nulle
+    /// </summary>
+    /// <param name="maxIntensity">L'intensité maximale trouvée dans le donjon jusqu'ici</param>
+    /// <returns>L'intensité de la salle du boss</returns>
+    private float SetBossAndEndRoomIntensity(float maxIntensity)
+    {
+        // Gestion de l'intensité de la salle de boss
+        Room bossRoom = GetRooms().FirstOrDefault(r => r.GetRoomType() == RoomType.BOSS);
+        if (bossRoom == null)
+            throw new System.Exception("Impossible de trouver une salle de boss");
+
+        float bossRoomIntensity = maxIntensity + 1.0f;
+        bossRoom.SetIntensity(bossRoomIntensity);
+
+        // Gestion de l'intensité de la salle de fin, la salle de fin est forcément le seul enfant de la salle de boss, sinon il y a une erreur
+        Room endRoom = bossRoom.GetChildrens().FirstOrDefault();
+        if (endRoom == null)
+            throw new System.Exception("Impossible de trouver une salle de fin liée à la salle de boss");
+
+        endRoom.SetIntensity(0.0f);
+
+        return bossRoomIntensity;
+    }
+
+    /// <summary>
+    ///  On passe toutes nos intensités entre 0.0f et 1.0f pour faciliter l'implémentation du donjon
+    /// </summary>
+    /// <param name="maxIntensity">L'intensité maximale trouvée dans le donjon (le boss)</param>
+    private void NormalizeRoomsIntensity(float maxIntensity)
+    {
+        List<Room> allRooms = GetRooms();
+        foreach (var room in allRooms) // On s'en fiche de l'ordre ici puisqu'on compare l'intensité de la pièece par rapport à l'intensité max
+            room.SetIntensity(room.GetIntensity() / maxIntensity);
+
     }
 }
