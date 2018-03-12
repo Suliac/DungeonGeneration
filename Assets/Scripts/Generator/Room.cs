@@ -11,6 +11,7 @@ public enum RoomType
     NORMAL
 }
 
+
 public class Room
 {
 
@@ -144,4 +145,10 @@ public class Room
         hasKey = value;
     }
     
+    public bool IsBossOrEnd()
+    {
+        return type == RoomType.BOSS || type == RoomType.END;
+    }
+    
+
 }

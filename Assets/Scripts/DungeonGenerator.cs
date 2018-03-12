@@ -7,6 +7,8 @@ public class DungeonGenerator : MonoBehaviour {
     public int MaxRoomPerLevel = 4;
     public int InitMaxX = 1;
     public int InitMaxY = 1;
+    [Range(0.0f, 1.0f)]
+    public float NewEdgeProbability = 0.3f;
 
     [SerializeField] private IRenderer dungeonRenderer;
     private Dungeon dungeon;
@@ -24,7 +26,7 @@ public class DungeonGenerator : MonoBehaviour {
 
     void GenerateDungeon()
     {
-        dungeon = new Dungeon(MaxRoomPerLevel, MaxRooms, InitMaxX, InitMaxY);
+        dungeon = new Dungeon(MaxRoomPerLevel, MaxRooms, InitMaxX, InitMaxY, NewEdgeProbability);
         dungeon.Generate();
 
         dungeonRenderer.Init(dungeon);

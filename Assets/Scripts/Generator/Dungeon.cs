@@ -14,8 +14,9 @@ public class Dungeon
     private int DungeonMaxRooms = 16; // NB MAX_ROOM < MAX_X*MAX_Y pour ne pas avoir que des donjons finaux carrés (qui remplisse tout l'espace dispo)
     private int DungeonInitMaxX = 1;
     private int DungeonInitMaxY = 1;
+    private float DungeonGraphLinkProbability = 0.3f;
 
-    public Dungeon(int maxRoomsPerLevel, int maxRooms, int firstRoomMaxX = 1, int firstRoomMaxY = 1)
+    public Dungeon(int maxRoomsPerLevel, int maxRooms, int firstRoomMaxX = 1, int firstRoomMaxY = 1, float newEdgeProbability = 0.3f)
     {
         allRooms = new List<Room>();
         roomPerKeyLevel = new Dictionary<int, List<Room>>();
@@ -26,6 +27,7 @@ public class Dungeon
         DungeonMaxRooms = maxRooms;
         DungeonInitMaxX = firstRoomMaxX;
         DungeonInitMaxY = firstRoomMaxY;
+        DungeonGraphLinkProbability = newEdgeProbability;
     }
 
     /// <summary>
@@ -42,13 +44,14 @@ public class Dungeon
         // 3 - Placement de la fin  et du boss
         PlaceGoalAndEndRooms();
 
-        // 4 - Gestion de l'intensité d'une room inspiré de la thèse : https://smartech.gatech.edu/bitstream/handle/1853/16823/ashmore-thesis.pdf (en simplifiant)
+        // 4 - Transforme l'arbe en graph -> ajoute d'autre liaisons entre les salles (si même niveau de clé)
+        Graphify();
+
+        // 5 - Gestion de l'intensité d'une room inspiré de la thèse : https://smartech.gatech.edu/bitstream/handle/1853/16823/ashmore-thesis.pdf (en simplifiant)
         SetAllRoomsIntensity();
 
-        // 4 - Placement des clés -> on met les clés là où l'intensité est la plus forte à une niveau
+        // 6 - Placement des clés -> on met les clés là où l'intensité est la plus forte à une niveau
         SetAllKeys();
-
-        // 5 - Transforme l'arbe en graph -> ajoute d'autre liaisons entre les salles (si même niveau de clé)
     }
 
     #region Core Func
@@ -107,11 +110,7 @@ public class Dungeon
             Room childRoom = new Room(childPos, currentKeyLevel);
 
             // On link les salles enfants et parents entre elles
-            parentRoom.Link(childRoom, needToLockDoorWithChildren ? currentKeyLevel : -1); // Si le niveau de clé a changé, le lien devient conditionnel
-            childRoom.Link(parentRoom, needToLockDoorWithChildren ? currentKeyLevel : -1);
-
-            childRoom.SetParent(parentRoom);
-            parentRoom.AddChild(childRoom);
+            LinkParentAndChild(parentRoom, childRoom, needToLockDoorWithChildren ? currentKeyLevel : -1);
 
             // On ajoute la nouvelle salle au donjon
             AddRoomToDungeonForKeyLevel(childRoom, currentKeyLevel);
@@ -131,7 +130,7 @@ public class Dungeon
         IncreaseKeyLevel();
 
         // 1 - Récupération de la salle de boss
-        List<Room> leafs = allRooms.Where(r => r.GetChildrens().Count == 0).ToList();
+        List<Room> leafs = roomPerKeyLevel[currentKeyLevel-1].Where(r => r.GetChildrens().Count == 0).ToList();
         if (leafs.Count == 0)
             throw new System.Exception("Aucune feuille disponible");
 
@@ -210,6 +209,33 @@ public class Dungeon
             }
             else // si == 1
                 rooms[0].SetHasKey(true);
+        }
+    }
+
+    /// <summary>
+    /// Ajoute des liens entre des salles de même niveau / avec un écart d'1 niveau sans toucher à la fin & boss
+    /// </summary>
+    private void Graphify()
+    {
+        foreach (var room in allRooms)
+        {
+            if (room.IsBossOrEnd()) // On veut garder qu'1 passage vers le boss
+                continue;
+
+            List<Room> adjacentsRooms = GetAdjacentRooms(room.GetId()).Where(r => !r.IsBossOrEnd()).ToList(); // On veut garder qu'1 passage vers le boss
+            foreach (var adjRoom in adjacentsRooms)
+            {
+                if (room.IsLinkedTo(adjRoom) == null) // Pas besoin de refaire de liens pour des salles déjà connectées
+                {
+                    // On ne veut ajouter des portes que si les salles sont de même key level
+                    int currentKL = room.GetKeyLevel();
+                    int adjKL = adjRoom.GetKeyLevel();
+                    int diffLevelRoot = (currentKL - adjKL) * (currentKL - adjKL);
+
+                    if ((diffLevelRoot == 0) && Random.Range(0.0f, 1.0f) <= DungeonGraphLinkProbability)
+                        LinkParentAndChild(room, adjRoom, -1, true);
+                }
+            }
         }
     }
     #endregion
@@ -296,7 +322,7 @@ public class Dungeon
         }
 
         return null;
-    } 
+    }
 
     private IEnumerable<Room> GetRoomsWithTheMostIntensityForLevel(int keyLevel)
     {
@@ -439,6 +465,33 @@ public class Dungeon
         return allPosAvailable;
     }
 
+    private List<Room> GetAdjacentRooms(string roomId)
+    {
+        List<Room> adjacent = new List<Room>();
+
+        Room currentRoom = GetRoom(roomId);
+        if (currentRoom != null)
+        {
+            Vector2 roomPos = currentRoom.getPos();
+            Room north = GetRoom(roomPos, Direction.North);
+            Room east = GetRoom(roomPos, Direction.East);
+            Room south = GetRoom(roomPos, Direction.South);
+            Room west = GetRoom(roomPos, Direction.West);
+
+            if (north != null)
+                adjacent.Add(north);
+            if (east != null)
+                adjacent.Add(east);
+            if (south != null)
+                adjacent.Add(south);
+            if (west != null)
+                adjacent.Add(west);
+
+        }
+
+        return adjacent;
+    }
+
     /// <summary>
     /// Fonction pour savoir si la position dans le donjon est libre
     /// </summary>
@@ -468,7 +521,7 @@ public class Dungeon
 
         return parentRoom.IsLinkedTo(roomToDir);
     }
-    
+
     /// <summary>
     /// On précise l'intensité de la salle à partir de la dernière intensité (où de l'intensité max du dernier niveau si nouveau level) et on fait la même chose pour ses enfants
     /// Attention, seules les <see cref="Room"/> d'un même niveau de clés sont ajoutés
@@ -482,11 +535,25 @@ public class Dungeon
         // qui n'est pas liée à toute les pièces de l'étage, il faut donc r'envoyer une valeur si on arrive au bout 
         // d'une branche mais que toutes les pièces de l'étages n'ont pas été parcourues
 
+        // De plus maintenant que le calcul d'intensité est fait sur le graph et polus sur un arbre il faut faire
+        // attention aux dépendances cycliques
+
         Room currentRoom = GetRoom(currentRoomId);
         if (currentRoom == null)
             throw new System.Exception("Impossible de trouver la room à partir de son ID");
 
+        List<Room> childrens = currentRoom.GetChildrens();
         int currentKeyLevel = currentRoom.GetKeyLevel();
+
+        List<Room> childrensAlreadyComputed = childrens.Where(c => c.GetIntensity() > 0 && c.GetRoomType() != RoomType.START).ToList();
+        // Il faut prendre en compte les dépendances cycliques, si un enfant a déjà été calculé, il ne sera pas recalculé et la pièece acutelle
+        // doit avoir une intensité en fonction de la plus petite aux alentours
+        if (childrensAlreadyComputed != null && childrensAlreadyComputed.Count > 0) 
+        {
+            float minChildrenIntensity = childrensAlreadyComputed.Min(room => room.GetIntensity());
+            lastIntensity = Mathf.Min(lastIntensity, minChildrenIntensity);
+        }
+
         float intensity = lastIntensity + 1;
         float maxIntensity = intensity;
 
@@ -494,10 +561,11 @@ public class Dungeon
         currentRoom.SetIntensity(intensity);
 
         // On parcourt les enfant de même KeyLevel pour update leur intensité
-        List<Room> childrens = currentRoom.GetChildrens();
         if (childrens != null)
         {
-            foreach (var roomChild in childrens.Where(c => c.GetKeyLevel() == currentKeyLevel)) // On ne gère que l'intensité du même étage pour être sûr que toutes les pièces ont été gérées avant de passer à l'étage suivant
+            // On ne gère que l'intensité du même étage pour être sûr que toutes les pièces ont été gérées avant de passer à l'étage suivant
+            // Si on a un enfant dont l'intensité est déjà calculée, on ne le recalcule pas sauf s'il a besoin d'etre corrigé
+            foreach (var roomChild in childrens.Where(c => c.GetKeyLevel() == currentKeyLevel && ((c.GetIntensity() > 0 && intensity+1 < c.GetIntensity()) || c.GetIntensity() <= 0) && c.GetRoomType() != RoomType.START)) 
             {
                 float childMaxIntensity = SetRoomIntensity(roomChild.GetId(), intensity);
                 maxIntensity = Mathf.Max(maxIntensity, childMaxIntensity); // Si plusieurs enfants, l'intensité max est la plus grande des enfants
@@ -539,7 +607,7 @@ public class Dungeon
     private float SetBossAndEndRoomIntensity(float maxIntensity)
     {
         // Gestion de l'intensité de la salle de boss
-        Room bossRoom = GetRooms().FirstOrDefault(r => r.GetRoomType() == RoomType.BOSS);
+        Room bossRoom = allRooms.FirstOrDefault(r => r.GetRoomType() == RoomType.BOSS);
         if (bossRoom == null)
             throw new System.Exception("Impossible de trouver une salle de boss");
 
@@ -562,10 +630,48 @@ public class Dungeon
     /// <param name="maxIntensity">L'intensité maximale trouvée dans le donjon (le boss)</param>
     private void NormalizeRoomsIntensity(float maxIntensity)
     {
-        List<Room> allRooms = GetRooms();
         foreach (var room in allRooms) // On s'en fiche de l'ordre ici puisqu'on compare l'intensité de la pièece par rapport à l'intensité max
             room.SetIntensity(room.GetIntensity() / maxIntensity);
 
-    } 
+    }
+
+    private Vector2 GetPosInDir(Vector2 initPos, Direction direction)
+    {
+        switch (direction)
+        {
+            case Direction.North:
+                return new Vector2(initPos.x, initPos.y + 1);
+            case Direction.East:
+                return new Vector2(initPos.x + 1, initPos.y);
+            case Direction.South:
+                return new Vector2(initPos.x, initPos.y - 1);
+            case Direction.West:
+                return new Vector2(initPos.x - 1, initPos.y);
+            default:
+                return new Vector2(initPos.x, initPos.y + 1);
+        }
+    }
+
+    /// <summary>
+    /// Ajoute des <see cref="Edge"/> entre les deux rooms, par défaut on change le parent de l'enfant mais on peut le désactiver
+    /// NB : on veut le désactiver lors qu'on graphifie notre arbre pour s'assurer d'avoir toujours un point d'entrée unique par level
+    /// </summary>
+    /// <param name="parentRoom">La pièce parente</param>
+    /// <param name="childRoom">La pièce enfant</param>
+    /// <param name="keyLevel">Le niveau de clé</param>
+    /// <param name="onlyChildrensRelation">si <see cref="true"/> seules les listes des rooms enfants sont mise à jour</param>
+    private void LinkParentAndChild(Room parentRoom, Room childRoom, int keyLevel, bool onlyChildrensRelation = false)
+    {
+        // On link les salles enfants et parents entre elles
+        parentRoom.Link(childRoom, keyLevel); // Si le niveau de clé a changé, le lien devient conditionnel
+        childRoom.Link(parentRoom, keyLevel);
+
+        if (!onlyChildrensRelation)
+            childRoom.SetParent(parentRoom);
+        else
+            childRoom.AddChild(parentRoom);
+
+        parentRoom.AddChild(childRoom);
+    }
     #endregion
 }

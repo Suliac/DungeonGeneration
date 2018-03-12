@@ -33,7 +33,7 @@ public class DebugRenderer : IRenderer
             {
                 Renderer doorRend = door.GetComponent<Renderer>();
                 if (doorRend != null)
-                    doorRend.material.color = edge.GetKeyLevel() > -1 ? Color.black : Color.grey;
+                    doorRend.material.color = edge.GetKeyLevel() > -1 ? edge.GetKeyLevel() == 1000 ? Color.red : Color.black : Color.grey;
             }
         }
     }
@@ -57,7 +57,7 @@ public class DebugRenderer : IRenderer
                 rend.material.color = Color.magenta;
                 break;
             case RoomType.BOSS:
-                rend.material.color = Color.red;
+                rend.material.color = Color.blue;
                 break;
             case RoomType.NORMAL:
                 rend.material.color = new Color(dungeonRoom.GetIntensity(), 0.0f, 0.0f, 1.0f);
