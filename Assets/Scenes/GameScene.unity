@@ -223,6 +223,8 @@ MonoBehaviour:
   MaxRoomPerLevel: 16
   InitMaxX: 1
   InitMaxY: 1
+  RoomGridContentWidth: 5
+  RoomGridContentHeight: 5
   NewEdgeProbability: 0
   dungeonRenderer: {fileID: 11400000, guid: 16c6f3ba3d0d499459ae93784f16b425, type: 2}
 --- !u!4 &1112570106

@@ -17,11 +17,11 @@ public abstract class IRenderer : ScriptableObject
     public void Render()
     {
         if (dungeon == null)
-            throw new System.Exception("Erreur, impossible de récupérer le donjon généré, avez vous pensé à lancer la fonction Init avant ?");
+            throw new Exception("Erreur, impossible de récupérer le donjon généré, avez vous pensé à lancer la fonction Init avant ?");
 
         ResetRender();
         if(!dungeonGameObject)
-            throw new System.Exception("Erreur, impossible de récupérer dungeonGameObject");
+            throw new Exception("Erreur, impossible de récupérer dungeonGameObject");
 
 
         var rooms = dungeon.GetRooms();
@@ -44,15 +44,15 @@ public abstract class IRenderer : ScriptableObject
     
     abstract protected void ResetRender();
 
-    abstract protected void RenderRoom(Room dungeonRoom);
+    abstract protected void RenderRoom(DungeonRoom dungeonRoom);
 
-    abstract protected void RenderDoor(Room dungeonRoom, Direction direction);
+    abstract protected void RenderDoor(DungeonRoom dungeonRoom, Direction direction);
 
-    abstract protected void RenderGround(Room dungeonRoom);
+    abstract protected void RenderGround(DungeonRoom dungeonRoom);
 
-    abstract protected void RenderKeyLevel(Room dungeonRoom);
+    abstract protected void RenderKeyLevel(DungeonRoom dungeonRoom);
 
-    abstract protected void RenderIntensity(Room dungeonRoom);
+    abstract protected void RenderIntensity(DungeonRoom dungeonRoom);
     
     virtual protected void SpecificInit()
     {

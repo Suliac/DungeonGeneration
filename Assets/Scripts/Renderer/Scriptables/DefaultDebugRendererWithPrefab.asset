@@ -12,3 +12,16 @@ MonoBehaviour:
   m_Name: DefaultDebugRendererWithPrefab
   m_EditorClassIdentifier: 
   roomPrefab: {fileID: 1838407989707346, guid: 6912ebf7485b56d4d82e205ae4abc051, type: 2}
+  toDefineContentPrefab: {fileID: 1049779771956664, guid: 77ddabcbea66ff742b034d196d6deb3c,
+    type: 2}
+  emptyContentPrefab: {fileID: 1619017815433638, guid: 6df717dbabef5fe46bf1cc32b8f2566b,
+    type: 2}
+  blockContentPrefab: {fileID: 1019185654541340, guid: 2f8274d042d700c42a913f85f73eb1eb,
+    type: 2}
+  enemyContentPrefab: {fileID: 1717265342978374, guid: 38b078a0966e4cc47a67af50a1cd689a,
+    type: 2}
+  bonusContentPrefab: {fileID: 1563698628016568, guid: 1e01748d27ffc65459d7d5eef903ac88,
+    type: 2}
+  intensityObjectName: Intensity
+  keyLevelObjectName: KeyLevel
+  roomWidth: 1
