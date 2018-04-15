@@ -24,4 +24,12 @@ MonoBehaviour:
     type: 2}
   intensityObjectName: Intensity
   keyLevelObjectName: KeyLevel
+  contentsObjectName: Contents
   roomWidth: 1
+  displayRoomsDetails: 1
+  startRoomColor: {r: 0, g: 1, b: 0, a: 1}
+  endRoomColor: {r: 1, g: 0, b: 1, a: 1}
+  bossRoomColor: {r: 0, g: 0, b: 1, a: 1}
+  keyRoomColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  normalRoomColorLowIntensity: {r: 1, g: 1, b: 1, a: 1}
+  normalRoomColorHighIntensity: {r: 1, g: 0, b: 0, a: 1}

@@ -5,11 +5,12 @@ using UnityEngine;
 
 public enum ContentType
 {
-    ToDefine,
-    Empty,
-    Block,
-    Enemy,
-    Bonus
+    Anything = 0,
+    ToDefine = 1,
+    Empty = 2,
+    Block = 3,
+    Enemy = 4,
+    Bonus = 5
 }
 
 /// <summary>

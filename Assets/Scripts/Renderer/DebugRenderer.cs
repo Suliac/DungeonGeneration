@@ -16,8 +16,16 @@ public class DebugRenderer : IRenderer
     [SerializeField] private string keyLevelObjectName = "KeyLevel";
     [SerializeField] private string contentsObjectName = "Contents";
     [SerializeField] private int roomWidth = 1;
-    private float wallWidth = 0.1f;
+    [SerializeField] public bool displayRoomsDetails = true;
 
+    [SerializeField] private Color startRoomColor = Color.green;
+    [SerializeField] private Color endRoomColor = Color.magenta;
+    [SerializeField] private Color bossRoomColor = Color.blue;
+    [SerializeField] private Color keyRoomColor = Color.yellow;
+    [SerializeField] private Color normalRoomColorLowIntensity = Color.white;
+    [SerializeField] private Color normalRoomColorHighIntensity = Color.red;
+
+    private float wallWidth = 0.1f;
     private TextMesh keyLevel;
     private TextMesh intensity;
     private Transform roomContents;
@@ -62,16 +70,16 @@ public class DebugRenderer : IRenderer
         switch (dungeonRoom.GetRoomType())
         {
             case RoomType.START:
-                rend.material.color = Color.green;
+                rend.material.color = startRoomColor;
                 break;
             case RoomType.END:
-                rend.material.color = Color.magenta;
+                rend.material.color = endRoomColor;
                 break;
             case RoomType.BOSS:
-                rend.material.color = Color.blue;
+                rend.material.color = bossRoomColor;
                 break;
             case RoomType.NORMAL:
-                rend.material.color = new Color(dungeonRoom.GetIntensity(), 0.0f, 0.0f, 1.0f);
+                rend.material.color = Color.Lerp(normalRoomColorLowIntensity, normalRoomColorHighIntensity, dungeonRoom.GetIntensity());
                 break;
             default:
                 break;
@@ -79,7 +87,7 @@ public class DebugRenderer : IRenderer
 
         if (dungeonRoom.GetHasKey())
         {
-            rend.material.color = Color.yellow;
+            rend.material.color = keyRoomColor;
         }
     }
 
@@ -104,48 +112,51 @@ public class DebugRenderer : IRenderer
             keyLevel = texts.FirstOrDefault(t => t.name == keyLevelObjectName);
         }
 
-        roomContents = currentRoom.transform.Find(contentsObjectName);
-
-        var roomContentHolder = dungeonRoom.GetContent();
-        var contents = roomContentHolder.GetAllContents();
-
-        foreach (var content in contents)
+        if (displayRoomsDetails)
         {
-            GameObject toInstantiate = null;
+            roomContents = currentRoom.transform.Find(contentsObjectName);
 
-            switch (content.GetContentType())
+            var roomContentHolder = dungeonRoom.GetContent();
+            var contents = roomContentHolder.GetAllContents();
+
+            foreach (var content in contents)
             {
-                case ContentType.ToDefine:
-                    toInstantiate = toDefineContentPrefab;
-                    break;
-                case ContentType.Empty:
-                    toInstantiate = emptyContentPrefab;
-                    break;
-                case ContentType.Block:
-                    toInstantiate = blockContentPrefab;
-                    break;
-                case ContentType.Enemy:
-                    toInstantiate = enemyContentPrefab;
-                    break;
-                case ContentType.Bonus:
-                    toInstantiate = bonusContentPrefab;
-                    break;
-                default:
-                    break;
-            }
+                GameObject toInstantiate = null;
 
-            float contentWidth = 0.16f;
-            float contentHeight = 0.16f;
-            Vector2 contentPos = content.GetPos();
+                switch (content.GetContentType())
+                {
+                    case ContentType.ToDefine:
+                        toInstantiate = toDefineContentPrefab;
+                        break;
+                    case ContentType.Empty:
+                        toInstantiate = emptyContentPrefab;
+                        break;
+                    case ContentType.Block:
+                        toInstantiate = blockContentPrefab;
+                        break;
+                    case ContentType.Enemy:
+                        toInstantiate = enemyContentPrefab;
+                        break;
+                    case ContentType.Bonus:
+                        toInstantiate = bonusContentPrefab;
+                        break;
+                    default:
+                        break;
+                }
 
-            if (toInstantiate)
-            {
-                var currentContent = Instantiate(toInstantiate,
-                    new Vector3(wallWidth + pos.x * roomWidth + contentPos.x * contentWidth, 0.2f, wallWidth + pos.y * roomWidth + contentPos.y * contentHeight),
-                    Quaternion.identity,
-                    roomContents ? roomContents : currentRoom.transform);
-            }
+                float contentWidth = 0.16f;
+                float contentHeight = 0.16f;
+                Vector2 contentPos = content.GetPos();
 
+                if (toInstantiate)
+                {
+                    Instantiate(toInstantiate,
+                        new Vector3(wallWidth + pos.x * roomWidth + contentPos.x * contentWidth, 0.2f, wallWidth + pos.y * roomWidth + contentPos.y * contentHeight),
+                        Quaternion.identity,
+                        roomContents ? roomContents : currentRoom.transform);
+                }
+
+            } 
         }
     }
 

@@ -11,6 +11,7 @@ public class DungeonGenerator : MonoBehaviour {
     [SerializeField] private int RoomGridContentHeight = 5;
     [SerializeField, Range(0.0f, 1.0f)] private float NewEdgeProbability = 0.3f;
     [SerializeField] private IRenderer dungeonRenderer;
+    [SerializeField] private GrammarPattern[] patterns;
 
     private Dungeon dungeon;
     
@@ -26,7 +27,7 @@ public class DungeonGenerator : MonoBehaviour {
 
     void GenerateDungeon()
     {
-        dungeon = new Dungeon(MaxRoomPerLevel, MaxRooms, RoomGridContentWidth, RoomGridContentHeight, InitMaxX, InitMaxY, NewEdgeProbability);
+        dungeon = new Dungeon(MaxRoomPerLevel, MaxRooms, RoomGridContentWidth, RoomGridContentHeight, patterns, InitMaxX, InitMaxY, NewEdgeProbability);
         dungeon.Generate();
 
         dungeonRenderer.Init(dungeon);

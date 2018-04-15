@@ -164,7 +164,7 @@ public class DungeonRoom
     }
     #endregion
 
-    public void GenerateContent(int width, int height)
+    public void GenerateContent(int width, int height, GrammarPattern[] dungeonPattern)
     {
         DirectionFlag doorDirections = DirectionFlag.None;
         foreach (var edge in edges)
@@ -184,7 +184,7 @@ public class DungeonRoom
                 doorDirections |= DirectionFlag.West;
         }
 
-        contentOfTheRoom = new RoomFilled(width, height, doorDirections);
+        contentOfTheRoom = new RoomFilled(width, height, doorDirections, dungeonPattern);
         contentOfTheRoom.Generate();
     }
 

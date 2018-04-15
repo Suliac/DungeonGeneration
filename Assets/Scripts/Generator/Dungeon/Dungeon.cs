@@ -17,8 +17,9 @@ public class Dungeon
     private float DungeonGraphLinkProbability = 0.3f;    
     private int DungeonRoomContentGridWidth = 5;
     private int DungeonRoomContentGridHeight = 5;
+    private GrammarPattern[] dungeonPatterns;
 
-    public Dungeon(int maxRoomsPerLevel, int maxRooms, int roomContentWidth, int roomContentHeight, int firstRoomMaxX = 1, int firstRoomMaxY = 1, float newEdgeProbability = 0.3f)
+    public Dungeon(int maxRoomsPerLevel, int maxRooms, int roomContentWidth, int roomContentHeight, GrammarPattern[] patternsToApply, int firstRoomMaxX = 1, int firstRoomMaxY = 1, float newEdgeProbability = 0.3f)
     {
         allRooms = new List<DungeonRoom>();
         roomPerKeyLevel = new Dictionary<int, List<DungeonRoom>>();
@@ -32,7 +33,7 @@ public class Dungeon
         DungeonGraphLinkProbability = newEdgeProbability;
         DungeonRoomContentGridHeight = roomContentHeight;
         DungeonRoomContentGridWidth = roomContentWidth;
-
+        dungeonPatterns = patternsToApply;
     }
 
     /// <summary>
@@ -250,7 +251,7 @@ public class Dungeon
     private void GenerateRoomContent()
     {
         foreach (var room in allRooms)
-            room.GenerateContent(DungeonRoomContentGridWidth, DungeonRoomContentGridHeight);
+            room.GenerateContent(DungeonRoomContentGridWidth, DungeonRoomContentGridHeight, dungeonPatterns);
     }
 
     #endregion
