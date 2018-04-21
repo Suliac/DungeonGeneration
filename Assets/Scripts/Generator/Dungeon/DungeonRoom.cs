@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -8,7 +9,18 @@ public enum RoomType
     START,
     END,
     BOSS,
-    NORMAL
+    NORMAL,
+    KEY
+}
+
+[Flags]
+public enum RoomTypeFlags
+{
+    START = 1,
+    END = 2,
+    BOSS = 4,
+    NORMAL = 8,
+    KEY = 16
 }
 
 
@@ -20,7 +32,7 @@ public class DungeonRoom
     private List<DungeonEdge> edges; // Les liens vers les autres rooms avec des particularités, p.e. : besoin d'une clés pour passer à telle pièce
     private List<DungeonRoom> childrens;
     private DungeonRoom parent;
-    private RoomFilled contentOfTheRoom;
+    private RoomFiller contentOfTheRoom;
 
     private float intensity;
 
@@ -116,6 +128,8 @@ public class DungeonRoom
     public void SetType(RoomType value)
     {
         type = value;
+        if (hasKey)
+            type = RoomType.KEY;
     }
 
     public int GetKeyLevel()
@@ -150,6 +164,9 @@ public class DungeonRoom
 
     public void SetHasKey(bool value)
     {
+        if (value)
+            type = RoomType.KEY;
+
         hasKey = value;
     }
 
@@ -158,7 +175,7 @@ public class DungeonRoom
         return type == RoomType.BOSS || type == RoomType.END;
     }
     
-    public RoomFilled GetContent()
+    public RoomFiller GetContent()
     {
         return contentOfTheRoom;
     }
@@ -184,7 +201,7 @@ public class DungeonRoom
                 doorDirections |= DirectionFlag.West;
         }
 
-        contentOfTheRoom = new RoomFilled(width, height, doorDirections, dungeonPattern);
+        contentOfTheRoom = new RoomFiller(width, height, doorDirections, dungeonPattern, type, intensity);
         contentOfTheRoom.Generate();
     }
 

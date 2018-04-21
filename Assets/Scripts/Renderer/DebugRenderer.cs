@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "DebugRenderer", menuName = "DungeonGenerator/Renderer/Debug", order = 1)]
@@ -59,36 +60,63 @@ public class DebugRenderer : IRenderer
 
     protected override void RenderGround(DungeonRoom dungeonRoom)
     {
+        List<Renderer> renderers = new List<Renderer>();
+
         Transform ground = currentRoom.transform.Find("Ground");
         if (!ground)
             return;
 
         Renderer rend = ground.GetComponent<Renderer>();
-        if (!rend)
-            return;
+        if (rend)
+            renderers.Add(rend);
 
+
+        // On donne la couleur aux murs
+        Transform walls = currentRoom.transform.Find("Walls");
+        if (walls)
+        {
+            Renderer[] rends = walls.GetComponentsInChildren<Renderer>();
+            if (rends != null)
+                renderers.AddRange(rends);
+        }
+
+        // On donne la couleur aux portes (changé ensuite si besoin)
+        for (int i = 0; i < 4; i++)
+        {
+            Transform door = currentRoom.transform.Find(((Direction)i).ToString() + "Door");
+            if(door)
+            {
+                Renderer doorRend = door.GetComponent<Renderer>();
+                if (doorRend)
+                    renderers.Add(doorRend);
+            }
+        }
+
+        Color colorToApply = startRoomColor;
         switch (dungeonRoom.GetRoomType())
         {
             case RoomType.START:
-                rend.material.color = startRoomColor;
+                colorToApply = startRoomColor;
                 break;
             case RoomType.END:
-                rend.material.color = endRoomColor;
+                colorToApply = endRoomColor;
                 break;
             case RoomType.BOSS:
-                rend.material.color = bossRoomColor;
+                colorToApply = bossRoomColor;
                 break;
             case RoomType.NORMAL:
-                rend.material.color = Color.Lerp(normalRoomColorLowIntensity, normalRoomColorHighIntensity, dungeonRoom.GetIntensity());
+                colorToApply = Color.Lerp(normalRoomColorLowIntensity, normalRoomColorHighIntensity, dungeonRoom.GetIntensity());
+                break;
+            case RoomType.KEY:
+                colorToApply = keyRoomColor;
                 break;
             default:
                 break;
         }
 
-        if (dungeonRoom.GetHasKey())
-        {
-            rend.material.color = keyRoomColor;
-        }
+        if (renderers != null)
+            foreach (var render in renderers)
+                render.material.color = colorToApply;
     }
 
     protected override void RenderKeyLevel(DungeonRoom dungeonRoom)
@@ -156,7 +184,7 @@ public class DebugRenderer : IRenderer
                         roomContents ? roomContents : currentRoom.transform);
                 }
 
-            } 
+            }
         }
     }
 

@@ -9,6 +9,7 @@ using UnityEngine;
 public class GrammarPatternEditor : Editor
 {
     GrammarPattern pattern;
+
     int displayGraphChoices = -1;
     string displayChoiceForGraph = "Before";
     float choiceSize = 0.0f;
@@ -29,31 +30,32 @@ public class GrammarPatternEditor : Editor
         GUILayout.BeginHorizontal();
         GUILayout.Label("Width", GUILayout.Width(125));
 
-        if (!int.TryParse(EditorGUILayout.TextField(pattern.Width.ToString()), out pattern.Width))
-        {
-            EditorGUILayout.TextField(pattern.Width.ToString());
-        }
+        pattern.Width = EditorGUILayout.IntField(pattern.Width);
 
         GUILayout.EndHorizontal();
 
-        // Height
-        //GUILayout.BeginHorizontal();
-        //GUILayout.Label("Height", GUILayout.Width(125));
-
-        //if (!int.TryParse(EditorGUILayout.TextField(pattern.Height.ToString()), out pattern.Height))
-        //{
-        //    EditorGUILayout.TextField(pattern.Height.ToString());
-        //}
-
-        //GUILayout.EndHorizontal();
-
-        // Strcture pattern ?
+        // is room intensity increasing probabaility to have this pattern ?
         GUILayout.BeginHorizontal();
-        GUILayout.Label("Is structure pattern ?", GUILayout.Width(125));
-        pattern.IsStructurePattern = EditorGUILayout.Toggle(pattern.IsStructurePattern);
+        GUILayout.Label("Is probabaility increase with intensity", GUILayout.Width(125));
+
+        pattern.IntensityIncreaseProbability = EditorGUILayout.Toggle(pattern.IntensityIncreaseProbability);
+
         GUILayout.EndHorizontal();
 
-        scrollPos = GUILayout.BeginScrollView(scrollPos, GUILayout.Width(Screen.width * 0.95f), GUILayout.Height(Screen.height - choiceSize * 2.5f - GUI.skin.label.lineHeight * 5f));
+        // Apply to specific room type?
+        GUILayout.BeginHorizontal();
+        GUILayout.Label("Apply to room type", GUILayout.Width(125));
+
+        pattern.ApplyToRoomOfType = (RoomTypeFlags)EditorGUILayout.EnumFlagsField(pattern.ApplyToRoomOfType);
+        GUILayout.EndHorizontal();
+
+        // Level pattern
+        GUILayout.BeginHorizontal();
+        GUILayout.Label("Level", GUILayout.Width(125));
+        pattern.Level = EditorGUILayout.IntField(pattern.Level);
+        GUILayout.EndHorizontal();
+
+        scrollPos = GUILayout.BeginScrollView(scrollPos, GUILayout.Width(Screen.width * 0.95f), GUILayout.Height(Screen.height - choiceSize * 2.5f - GUI.skin.label.lineHeight * 8f));
 
         // Graph Before
         GUILayout.BeginHorizontal();
@@ -109,7 +111,7 @@ public class GrammarPatternEditor : Editor
                 int indexInTabs = x + y * width;
 
                 string[] options = Enum.GetNames(typeof(ContentType));
-                float size = Screen.width * 0.75f / width;
+                float size = Screen.width * 0.75f / 5;
 
                 bool imSelected = displayGraphChoices > -1 && displayGraphChoices == indexInTabs && displayChoiceForGraph == graphName;
                 GUIStyle buttonStyle = new GUIStyle(GUI.skin.button);

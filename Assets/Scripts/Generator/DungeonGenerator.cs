@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class DungeonGenerator : MonoBehaviour {
@@ -11,12 +12,16 @@ public class DungeonGenerator : MonoBehaviour {
     [SerializeField] private int RoomGridContentHeight = 5;
     [SerializeField, Range(0.0f, 1.0f)] private float NewEdgeProbability = 0.3f;
     [SerializeField] private IRenderer dungeonRenderer;
+    [SerializeField] private bool loadAllInGrammarFolder;
     [SerializeField] private GrammarPattern[] patterns;
 
     private Dungeon dungeon;
     
 	// Use this for initialization
 	void Start () {
+        if(loadAllInGrammarFolder)
+            patterns = Resources.LoadAll<GrammarPattern>("Grammar");
+
         GenerateDungeon();
 	}
     void Update()
