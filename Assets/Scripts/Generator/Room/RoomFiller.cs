@@ -13,7 +13,7 @@ public class RoomFiller
     private DirectionFlag doorsPosition;
     private GrammarPattern[] patternsToApply;
 
-    private RoomType currentRoomType;
+    private RoomTypeFlags currentRoomType;
     private float currentRoomIntensity;
 
     /// <summary>
@@ -28,13 +28,32 @@ public class RoomFiller
         doorsPosition = doors;
         patternsToApply = dungeonPatterns;
 
-        currentRoomType = roomType;
-        currentRoomIntensity = roomIntensity;
+        switch (roomType)
+        {
+            case RoomType.START:
+                currentRoomType = RoomTypeFlags.START;
+                break;
+            case RoomType.END:
+                currentRoomType = RoomTypeFlags.END;
+                break;
+            case RoomType.BOSS:
+                currentRoomType = RoomTypeFlags.BOSS;
+                break;
+            case RoomType.NORMAL:
+                currentRoomType = RoomTypeFlags.NORMAL;
+                break;
+            case RoomType.KEY:
+                currentRoomType = RoomTypeFlags.KEY;
+                break;
+            default:
+                break;
+        }
 
+        currentRoomIntensity = roomIntensity;
         allContents = new List<RoomContent>();
     }
 
-    public void Generate()
+    public int Generate()
     {
         // 1 - Générer un simili graph de graphWidth x graphHeight élements vides
         // Cela nous permet de nous assurer qu'on aura toujours un graph de même taille
@@ -43,9 +62,7 @@ public class RoomFiller
 
         // 2 - On applique les patterns de structure de facon aléatoire mais en fonction de leur niveau 
         // Pour garder une cohérence de génération
-        ApplyPatterns();
-
-        // 4 - On remplit les "trous" restant
+        return ApplyPatterns();
     }
 
     private void InitGraph()
@@ -61,138 +78,49 @@ public class RoomFiller
     }
 
     /// <summary>
-    /// Applique 1 seul et unique pattern dit de 'structure' pour s'assurer qu'il y ait un chemin entre les portes
-    /// </summary>
-    /// <returns>Retourne <see cref="true"/> si un patern à pu être appliqué, sinon retourne <see cref="false"/></returns>
-    //private bool ApplyStructurePattern()
-    //{
-    //    List<GrammarPattern> structurePatternsList = patternsToApply.Where(p => p.IsStructurePattern).ToList();
-    //    structurePatternsList.Shuffle();
-
-    //    Queue<GrammarPattern> structurePatternsQueue = new Queue<GrammarPattern>(structurePatternsList);
-    //    bool patternApplied = false;
-
-    //    if (structurePatternsQueue != null && structurePatternsQueue.Any())
-    //    {
-    //        GrammarPattern patternToApply = null;
-    //        do
-    //        {
-    //            patternToApply = structurePatternsQueue.Dequeue();
-
-    //            if (patternsToApply == null)
-    //                throw new Exception("Impossible de trouver un pattern à appliquer");
-
-    //            patternApplied = TryApplyPattern(patternToApply);
-
-    //        } while (!patternApplied && structurePatternsQueue.Count > 0); // Tant que l'on peut, on essaie d'appliquer un pattern
-    //    }
-
-    //    return patternApplied;
-    //}
-
-    /// <summary>
-    /// Applique autant de patterns (pas de structure) que possible de facon aléatoire
-    /// </summary>
-    //private void ApplyNotStructurePatterns()
-    //{
-    //    List<GrammarPattern> patternsList = patternsToApply.Where(p => !p.IsStructurePattern).ToList();
-    //    Queue<int> patternIndices = new Queue<int>();
-
-    //    for (int i = 0; i < patternsList.Count; i++)
-    //        patternIndices.Enqueue(UnityEngine.Random.Range(0, patternsList.Count-1));
-
-    //    while(patternIndices.Count > 0)
-    //    {
-    //        int indice = patternIndices.Dequeue();
-    //        TryApplyPattern(patternsList[indice]);
-    //    }
-
-    //}
-
-    /// <summary>
     /// Applique les patterns en fonction de leur level d'execution
     /// On essaie d'appliquer tous les pattern de niveau 0 puis de niveau 1 etc ...
     /// Cela permet de controler la cohérence, sans empêcher une génération chaotique horizontale si voulue (avec que des pattern de niveau 0)
     /// </summary>
-    private void ApplyPatterns()
+    private int ApplyPatterns()
     {
+        int nbPatternToApply = 5;
+        int nbPatternApplied = 0;
+
         if (patternsToApply.Any())
         {
             int maxLevel = patternsToApply.Max(p => p.Level) + 1;
             for (int i = 0; i < maxLevel; i++)
             {
-                List<GrammarPattern> patternsList = patternsToApply.Where(p => p.Level == i).ToList();
+                int nbPatternAppliedPerLevel = 0;
+                List<GrammarPattern> patternsList = patternsToApply.Where(p => p.Level == i && (p.ApplyToRoomOfType & currentRoomType) == currentRoomType).ToList();
                 if (patternsList != null && patternsList.Any())
                 {
-                    List<GrammarPattern> patternsListCpy = new List<GrammarPattern>(patternsList);
-                    for (int j = 0; j < patternsListCpy.Count; j++)
-                    {
-                        // Si la pattern n'est pas fait pour notre type de salle actuelle, on passe à la suite
-                        switch (currentRoomType)
-                        {
-                            case RoomType.START:
-                                if (!((patternsListCpy[j].ApplyToRoomOfType & RoomTypeFlags.START) == RoomTypeFlags.START))
-                                {
-                                    patternsList.Remove(patternsListCpy[j]);
-                                    continue;
-                                }
-                                break;
-                            case RoomType.END:
-                                if (!((patternsListCpy[j].ApplyToRoomOfType & RoomTypeFlags.END) == RoomTypeFlags.END))
-                                {
-                                    patternsList.Remove(patternsListCpy[j]);
-                                    continue;
-                                }
-                                break;
-                            case RoomType.BOSS:
-                                if (!((patternsListCpy[j].ApplyToRoomOfType & RoomTypeFlags.BOSS) == RoomTypeFlags.BOSS))
-                                {
-                                    patternsList.Remove(patternsListCpy[j]);
-                                    continue;
-                                }
-                                break;
-                            case RoomType.NORMAL:
-                                if (!((patternsListCpy[j].ApplyToRoomOfType & RoomTypeFlags.NORMAL) == RoomTypeFlags.NORMAL))
-                                {
-                                    patternsList.Remove(patternsListCpy[j]);
-                                    continue;
-                                }
-                                break;
-                            case RoomType.KEY:
-                                if (!((patternsListCpy[j].ApplyToRoomOfType & RoomTypeFlags.KEY) == RoomTypeFlags.KEY))
-                                {
-                                    patternsList.Remove(patternsListCpy[j]);
-                                    continue;
-                                }
-                                break;
-                            default:
-                                break;
-                        }
-                    }
-
-                    if (!patternsList.Any())
-                        continue;
-
                     // On veut que dans le "pire des cas" au moins chacun des patterns du niveau soit testé pour éviter d'avoir des "trous"
                     List<int> baseIndices = new List<int>();
                     for (int l = 0; l < patternsList.Count; l++)
                         baseIndices.Add(l);
 
                     // On ajoute d'autres indices pour ajouter au random
-                    for (int k = 0; k < (patternsList.Count*2); k++)
+                    for (int k = 0; k < (patternsList.Count); k++)
                         baseIndices.Add(UnityEngine.Random.Range(0, patternsList.Count));
 
                     baseIndices.Shuffle();
                     Queue<int> patternIndices = new Queue<int>(baseIndices);
 
-                    while (patternIndices.Count > 0)
+                    while (patternIndices.Count > 0 && ((nbPatternAppliedPerLevel < nbPatternToApply && i == maxLevel - 1) || (i != maxLevel - 1)))
                     {
                         int indice = patternIndices.Dequeue();
-                        TryApplyPattern(patternsList[indice]);
+                        if (TryApplyPattern(patternsList[indice]))
+                            nbPatternAppliedPerLevel++;
                     }
                 }
-            } 
+
+                nbPatternToApply += nbPatternAppliedPerLevel;
+            }
         }
+
+        return nbPatternApplied;
     }
 
     ///////////////////////////////////////////////////
@@ -294,9 +222,6 @@ public class RoomFiller
     {
         List<ContentType> graphBeforeRotated = RotatePattern(pattern.GraphBefore, pattern.Width, nbRotation);
         List<ContentType> graphAfterRotated = RotatePattern(pattern.GraphAfter, pattern.Width, nbRotation);
-
-        // On récupère l'index dans le tableau du apttern de la première position
-        int positionInPatternTab = (int)firstPosition.x + (int)firstPosition.y * pattern.Width;
 
         // On récupère toutes les cases qui sont couvertes par le pattern à partir de la position précisée
         List<RoomContent> equivalentToPatternGraph = allContents.Where(c => c.GetPos().x >= firstPosition.x

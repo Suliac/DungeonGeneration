@@ -35,8 +35,11 @@ public class DungeonGenerator : MonoBehaviour {
         dungeon = new Dungeon(MaxRoomPerLevel, MaxRooms, RoomGridContentWidth, RoomGridContentHeight, patterns, InitMaxX, InitMaxY, NewEdgeProbability);
         dungeon.Generate();
 
-        dungeonRenderer.Init(dungeon);
-        dungeonRenderer.Render();
+        if (dungeonRenderer)
+        {
+            dungeonRenderer.Init(dungeon);
+            dungeonRenderer.Render(); 
+        }
     }
 
 }

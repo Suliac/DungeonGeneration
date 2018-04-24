@@ -251,7 +251,9 @@ public class Dungeon
     private void GenerateRoomContent()
     {
         foreach (var room in allRooms)
-            room.GenerateContent(DungeonRoomContentGridWidth, DungeonRoomContentGridHeight, dungeonPatterns);
+        {
+            room.GenerateContent(DungeonRoomContentGridWidth, DungeonRoomContentGridHeight, dungeonPatterns);            
+        }
     }
 
     #endregion
