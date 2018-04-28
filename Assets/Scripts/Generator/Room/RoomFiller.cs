@@ -62,7 +62,12 @@ public class RoomFiller
 
         // 2 - On applique les patterns de structure de facon aléatoire mais en fonction de leur niveau 
         // Pour garder une cohérence de génération
-        return ApplyPatterns();
+        int patternApplied = ApplyPatterns();
+
+        // 3 - On remplis les trous restants par du vide
+        FillContentToDefine();
+
+        return patternApplied;
     }
 
     private void InitGraph()
@@ -123,6 +128,15 @@ public class RoomFiller
         return nbPatternApplied;
     }
 
+    private void FillContentToDefine()
+    {
+        if(allContents.Any(content => content.GetContentType() == ContentType.ToDefine))
+        {
+            var contentsToChange = allContents.Where(content => content.GetContentType() == ContentType.ToDefine).ToArray();
+            foreach (var content in contentsToChange)
+                content.SetContentType(ContentType.Empty);
+        }
+    }
     ///////////////////////////////////////////////////
 
     /// <summary>
@@ -204,8 +218,12 @@ public class RoomFiller
 
         foreach (var position in pos)
         {
-            List<int> nbRotation = new List<int> { 0, 1, 2, 3 };
-            nbRotation.Shuffle();
+            List<int> nbRotation = new List<int> { UnityEngine.Random.Range(0, 4) };
+            if(pattern.ApplyAtAnyCost)
+            {
+                nbRotation = new List<int> { 0, 1, 2, 3 };
+                nbRotation.Shuffle();
+            }
 
             Queue<int> nbRotationQueue = new Queue<int>(nbRotation);
             do

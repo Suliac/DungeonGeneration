@@ -42,6 +42,14 @@ public class GrammarPatternEditor : Editor
 
         GUILayout.EndHorizontal();
 
+        
+        GUILayout.BeginHorizontal();
+        GUILayout.Label("Must try 4 rotations", GUILayout.Width(125));
+
+        pattern.ApplyAtAnyCost = EditorGUILayout.Toggle(pattern.ApplyAtAnyCost);
+
+        GUILayout.EndHorizontal();
+
         // Apply to specific room type?
         GUILayout.BeginHorizontal();
         GUILayout.Label("Apply to room type", GUILayout.Width(125));
