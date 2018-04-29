@@ -118,7 +118,7 @@ public class GrammarPatternEditor : Editor
             {
                 int indexInTabs = x + y * width;
 
-                string[] options = Enum.GetNames(typeof(ContentType));
+                //string[] options = Enum.GetNames(typeof(ContentType));
                 float size = Screen.width * 0.75f / 5;
 
                 bool imSelected = displayGraphChoices > -1 && displayGraphChoices == indexInTabs && displayChoiceForGraph == graphName;

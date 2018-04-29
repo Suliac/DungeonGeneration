@@ -14,7 +14,7 @@ public class RoomFiller
     private GrammarPattern[] patternsToApply;
 
     private RoomTypeFlags currentRoomType;
-    private float currentRoomIntensity;
+    //private float currentRoomIntensity;
 
     /// <summary>
     /// Une room est cadrillée de <see cref="RoomContent"/>
@@ -49,7 +49,7 @@ public class RoomFiller
                 break;
         }
 
-        currentRoomIntensity = roomIntensity;
+        //currentRoomIntensity = roomIntensity;
         allContents = new List<RoomContent>();
     }
 
