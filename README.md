@@ -19,6 +19,7 @@ Enfin on veut que toutes les case devant les portes soient vides, pour que le jo
 
 Mon travail se découpe donc en 2 grandes partie : la génération de donjon et du contenu des salles.
 
+*NB : Ce que j'ai fait se rapproche plus d'une API que d'un jeu fini, pour l'instant seule une vue de débug est faite sur Unity, mais l'idéal serait qu'un client qui récupère les données générées, prenne en compte l'intensité pour choisir les monstres à mettre dans les zones de monstres d'une salle par exemple*
 
 ## Génération du donjon
 La génération du donjon se découpe en 6 étapes : 
@@ -53,4 +54,6 @@ Pour s'assurer qu'il y ait toujours un chemin de libre, on utilise une grammaire
 Les patterns de grammaire à appliquer possède des caractéristique comme un niveau permettant de s'assurer que certains sont appliqués avant d'autres.
 Ainsi on peut avoir des patterns de "structure" qui s'assureront qu'il y a toujours un chemin.
 
-Toute la difficulté d'avoir un donjon qui correpond à nos attentes est donc transposé dans ces patterns
+Toute la difficulté d'avoir un donjon qui correpond à nos attentes est donc transposé dans ces patterns.
+
+Par ailleurs on peut noter que l'on peut également appliquer certains patterns à seulement certains types de salles, cela permet un plus grand contrôle sur la génération si l'on souhaite que nos salles de clés ait une apparence différente.
