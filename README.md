@@ -41,13 +41,18 @@ La génération du donjon se découpe en 6 étapes :
     * On normalize le tout
 6. Placer les salles de clés
     * On récupère la plus forte intensité d'un niveau et on lui assigne le type de salle "Key"
-
+    
+*Détail d'un donjon généré :*
+![alt text](https://github.com/Suliac/DungeonGeneration/blob/master/Procedural_DungeonDetails.png)
 
 ## Génération du contenu des salles
 La génération des salles se découpe en 3 étapes simples :
 1. Génération d'un simili graph
 2. Appliquer les patterns de grammaires
 3. Remplir les dernières cases de contenu par du vide
+
+*Détail d'une salle générée :*
+![alt text](https://github.com/Suliac/DungeonGeneration/blob/master/Procedural_RoomDetails.png)
 
 Pour s'assurer qu'il y ait toujours un chemin de libre, on utilise une grammaire de génération.
 
@@ -57,3 +62,9 @@ Ainsi on peut avoir des patterns de "structure" qui s'assureront qu'il y a toujo
 Toute la difficulté d'avoir un donjon qui correpond à nos attentes est donc transposé dans ces patterns.
 
 Par ailleurs on peut noter que l'on peut également appliquer certains patterns à seulement certains types de salles, cela permet un plus grand contrôle sur la génération si l'on souhaite que nos salles de clés ait une apparence différente.
+
+*Exemple de pattern :*
+
+![alt text](https://github.com/Suliac/DungeonGeneration/blob/master/Pattern.PNG)
+
+
